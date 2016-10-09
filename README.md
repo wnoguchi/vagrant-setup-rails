@@ -19,6 +19,8 @@ Components
 - RDBMS
   - PosgreSQL 9.6
   - MariaDB 5.5.50
+- Redis
+- Nginx
 
 Usage
 -------
