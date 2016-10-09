@@ -1,0 +1,149 @@
+---
+- hosts: all
+  become: yes
+
+  tasks:
+          - name: install the basic packages
+            yum: name={{ item }} state=present
+            with_items:
+                    - epel-release
+                    - vim
+                    - cloud-init
+                    - cloud-utils
+                    - cloud-utils-growpart
+
+          - name: install the 'Development tools' package group
+            yum: name="@Development tools" state=present
+
+          - name: install the ruby-build required packages
+            yum: name={{ item }} state=present
+            with_items:
+                    - epel-release
+                    - openssl-devel
+                    - zlib-devel
+                    - readline-devel
+                    - mysql-devel
+                    - sqlite-devel
+                    - git
+                    - nodejs
+
+          # Use nodejs or therubyracer
+          - name: install the project specific required packages
+            yum: name={{ item }} state=present
+            with_items:
+                    - nodejs
+
+          # PostgreSQL
+          # PostgreSQL: Linux downloads (Red Hat family)
+          # https://www.postgresql.org/download/linux/redhat/
+          # PostgreSQL RPM Repository (with Yum)
+          # https://yum.postgresql.org/repopackages.php
+          #
+          # 9.6
+          # https://download.postgresql.org/pub/repos/yum/9.6/redhat/rhel-7-x86_64/pgdg-centos96-9.6-3.noarch.rpm
+          # 9.5
+          # https://download.postgresql.org/pub/repos/yum/9.5/redhat/rhel-7-x86_64/pgdg-centos95-9.5-3.noarch.rpm
+          - name: install PosgreSQL 9.6 Yum Repository
+            yum: name=https://download.postgresql.org/pub/repos/yum/9.6/redhat/rhel-7-x86_64/pgdg-centos96-9.6-3.noarch.rpm state=present
+
+          - name: install PosgreSQL 9.6
+            yum: name={{ item }} state=latest
+            with_items:
+              - postgresql96-server
+              - postgresql96-contrib
+              - postgresql96
+              - postgresql96-devel
+
+          - name: Enable and Start Nginx
+            service:
+              name: nginx
+              enabled: yes
+              state: started
+
+          - name: Enable and Start Redis
+            service:
+              name: redis
+              enabled: yes
+              state: started
+
+          - name: Enable and Start MariaDB
+            service:
+              name: mariadb
+              enabled: yes
+              state: started
+
+          - name: Checkout rbenv
+            become_user: vagrant
+            git: repo=https://github.com/sstephenson/rbenv.git dest=/home/vagrant/.rbenv
+
+          - name: Checkout ruby-build
+            become_user: vagrant
+            git: repo=https://github.com/sstephenson/ruby-build.git dest=/home/vagrant/.rbenv/plugins/ruby-build
+
+          - name: rbenv load setting
+            become_user: vagrant
+            blockinfile:
+              dest: /home/vagrant/.bashrc
+              block: |
+                export PATH="$HOME/.rbenv/bin:$PATH"
+                eval "$(rbenv init -)"
+              marker: "# {mark} ANSIBLE MANAGED BLOCK"
+
+          - name: Gemfile no document installation
+            become_user: vagrant
+            copy:
+              content: |
+                install: --no-document
+                update: --no-document
+              dest: /home/vagrant/.gemrc
+              owner: vagrant
+              group: vagrant
+              mode: 0644
+
+          - name: Check whether Ruby Installed
+            become_user: vagrant
+            shell: "rbenv versions | grep 2.3.1"
+            ignore_errors: true
+            register: target_ruby_exist
+
+          - name: Install Ruby 2.3.1
+            become_user: vagrant
+            shell: rbenv install 2.3.1
+            when: target_ruby_exist.rc != 0
+
+          - name: Use Ruby 2.3.1
+            become_user: vagrant
+            shell: rbenv global 2.3.1
+
+          - name: Install bundler
+            become_user: vagrant
+            shell: rbenv exec gem install bundler
+
+          - name: rbenv rehash
+            become_user: vagrant
+            shell: rbenv rehash
+
+          - name: Gemfile
+            become_user: vagrant
+            copy:
+              content: |
+                # frozen_string_literal: true
+                source "https://rubygems.org"
+
+                gem "rails"
+              dest: /home/vagrant/Gemfile
+              owner: vagrant
+              group: vagrant
+              mode: 0644
+
+          - name: Install Rails base gems
+            become_user: vagrant
+            shell: bundle install --path /home/vagrant/vendor/bundle
+            args:
+              chdir: /home/vagrant
+
+          # - name: Generate rails source template
+          #   become_user: vagrant
+          #   shell: bundle exec rails new sample -d mysql --skip-bundle
+          #   args:
+          #     chdir: /home/vagrant
