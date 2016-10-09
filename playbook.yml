@@ -3,6 +3,7 @@
   become: yes
 
   tasks:
+
           - name: install the basic packages
             yum: name={{ item }} state=present
             with_items:
@@ -176,3 +177,26 @@
               - 3000
               - 3306
               - 5432
+
+          - name: CREATE ROLE vagrant
+            become_user: postgres
+            shell: psql -c "CREATE ROLE vagrant SUPERUSER CREATEDB LOGIN PASSWORD 'vagrant'"
+            ignore_errors: true
+
+          - name: Edit Access Rights
+            template:
+              src: pg_hba.conf.j2
+              dest: /var/lib/pgsql/9.6/data/pg_hba.conf
+              owner: postgres
+              group: postgres
+              mode: 0600
+            notify:
+              - Restart PostgreSQL 9.6
+
+  handlers:
+
+          - name: Restart PostgreSQL 9.6
+            service:
+              name: postgresql-9.6
+              enabled: yes
+              state: restarted
