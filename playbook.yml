@@ -157,6 +157,12 @@
             args:
               chdir: /home/vagrant
 
+          - name: Configure Bundler to specify pg_config
+            become_user: vagrant
+            shell: bundle config build.pg --with-pg-config=/usr/pgsql-9.6/bin/pg_config
+            args:
+              chdir: /home/vagrant
+
           # - name: Generate rails source template
           #   become_user: vagrant
           #   shell: bundle exec rails new sample -d mysql --skip-bundle
