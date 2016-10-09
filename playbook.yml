@@ -168,3 +168,11 @@
           #   shell: bundle exec rails new sample -d mysql --skip-bundle
           #   args:
           #     chdir: /home/vagrant
+
+          - name: Open TCP Ports
+            firewalld: port={{ item }}/tcp permanent=true state=enabled immediate=yes
+            with_items:
+              - 80
+              - 3000
+              - 3306
+              - 5432
