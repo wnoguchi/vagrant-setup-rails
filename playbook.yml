@@ -72,6 +72,21 @@
               enabled: yes
               state: started
 
+          - name: Check whether PostgreSQL Database Cluster Initialized
+            shell: "test $(ls /var/lib/pgsql/9.6/data | wc -l) -eq 0"
+            ignore_errors: true
+            register: postgresql_database_cluster_not_initialized
+
+          - name: Initialize PostgreSQL Databae Cluster
+            shell: /usr/pgsql-9.6/bin/postgresql96-setup initdb
+            when: postgresql_database_cluster_not_initialized.rc == 0
+
+          - name: Enable and Start PostgreSQL 9.6
+            service:
+              name: postgresql-9.6
+              enabled: yes
+              state: started
+
           - name: Checkout rbenv
             become_user: vagrant
             git: repo=https://github.com/sstephenson/rbenv.git dest=/home/vagrant/.rbenv
