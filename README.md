@@ -47,8 +47,8 @@ Start Rails
 ```
 bundle exec rails new aaaaaa -d postgresql
 cd aaaaaa
-bundle exec rake db:create
-bundle exec rails server -b 0.0.0.0
+bin/rake db:create
+bin/rails server --bind 0.0.0.0
 ```
 
 Then open a browser, and access or type following URL.
